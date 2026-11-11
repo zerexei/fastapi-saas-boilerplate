@@ -1,0 +1,44 @@
+[project]
+name = "fastapi-saas-boilerplate"
+version = "0.1.0"
+description = "FastAPI starter template using a modular monolith layout, domain-driven design, and multi-tenant isolation."
+readme = "README.md"
+authors = [
+    { name = "Angelo Arcillas", email = "angeloarcillas64@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard]>=0.162.0",
+    "pydantic-settings>=2.14.2",
+    "uvicorn>=0.40.0",
+    "sqlalchemy[asyncio]>=2.0.51",
+    "asyncpg>=0.31.0",
+    "alembic>=1.18.5",
+    "redis>=8.0.1",
+    "structlog>=26.1.0",
+    "slowapi>=0.1.10",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.15.21",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.3,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N", "RUF"]
+ignore = ["B008", "E501"]
