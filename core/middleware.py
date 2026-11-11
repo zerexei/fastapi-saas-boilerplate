@@ -1,30 +1,49 @@
 import time
 import uuid
 
-from fastapi import Request
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import Response
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+
+from config import settings
+from core.rate_limiter import limiter
 
 
-class RequestIDMiddleware(BaseHTTPMiddleware):
-    """Injects a unique tracing Request ID and calculates execution duration
+def register_middlewares(app: FastAPI) -> None:
+    """Register all global application middlewares, CORS, telemetry,
 
-    for every HTTP request passing through the application.
+    and rate limiting hooks.
     """
 
-    async def dispatch(self, request: Request, call_next) -> Response:
-        # Check if client sent an ID, otherwise generate a new UUID4 trace ID
+    # 1. Custom Request ID & Execution Time Telemetry Middleware
+    @app.middleware("http")
+    async def add_request_id_middleware(request: Request, call_next):
         request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
-
-        # Attach request_id to request state for access in logs or endpoints
         request.state.request_id = request_id
 
         start_time = time.time()
         response = await call_next(request)
         process_time = time.time() - start_time
 
-        # Inject telemetry headers into the HTTP response
         response.headers["X-Request-ID"] = request_id
         response.headers["X-Process-Time"] = f"{process_time:.4f}"
-
         return response
+
+    # 2. Rate Limiter State & Exception Handling (SlowAPI)
+    app.state.limiter = limiter
+    app.add_exception_handler(
+        RateLimitExceeded,
+        _rate_limit_exceeded_handler,  # type: ignore
+    )
+    app.add_middleware(SlowAPIMiddleware)
+
+    # 3. CORS Middleware Configuration
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
