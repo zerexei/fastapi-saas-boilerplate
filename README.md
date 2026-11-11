@@ -40,4 +40,70 @@ server/
 ├── main.py                     # FastAPI application factory
 ├── pyproject.toml              # Dependencies and project metadata
 └── uv.lock                     # Dependency lock file
+
 ```
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Python 3.12+
+- [uv](https://github.com/astral-sh/uv)
+- PostgreSQL
+
+### Setup Steps
+
+1. **Clone the repository:**
+
+```bash
+git clone https://github.com/zerexei/fastapi-saas-boilerplate.git
+cd fastapi-ddd-starter/server
+
+```
+
+2. **Configure environment variables:**
+
+```bash
+cp .env.example .env
+# Edit .env with your database credentials
+
+```
+
+3. **Install dependencies:**
+
+```bash
+uv sync
+
+```
+
+4. **Run migrations:**
+
+```bash
+uv run alembic upgrade head
+
+```
+
+5. **Run the server:**
+
+```bash
+uv run uvicorn main:app --reload
+
+```
+
+---
+
+## Tech Stack
+
+- **Framework:** [FastAPI](https://fastapi.tiangolo.com/)
+- **Database/ORM:** [SQLAlchemy](https://www.sqlalchemy.org/) (Async) + [Alembic](https://alembic.sqlalchemy.org/)
+- **Settings:** [Pydantic v2](https://docs.pydantic.dev/)
+- **Package Manager:** [uv](https://github.com/astral-sh/uv)
+
+---
+
+## License
+
+MIT License. See `LICENSE` for details.
+
