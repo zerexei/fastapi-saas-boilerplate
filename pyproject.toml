@@ -17,6 +17,9 @@ dependencies = [
     "redis>=8.0.1",
     "structlog>=26.1.0",
     "slowapi>=0.1.10",
+    "pyjwt>=2.15.1",
+    "passlib>=1.7.4",
+    "bcrypt>=5.0.0",
 ]
 
 [dependency-groups]
