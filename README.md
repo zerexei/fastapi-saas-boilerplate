@@ -1,109 +1,123 @@
-# FastAPI-SaaS-Boilerplate (`fastapi-saas-boilerplate`)
+# FastAPI-SaaS-Boilerplate
 
-> A structured boilerplate for building multi-tenant SaaS backends with FastAPI using a modular monolith pattern and Domain-Driven Design (DDD).
-
----
-
-## Architecture Overview
-
-This template organizes code by business capabilities rather than technical roles:
-
-- **`domains/`:** Bounded contexts (`tenancy`, `users`, `billing`) isolate business logic.
-- **`core/`:** Technical plumbing like the database engine, security, and middleware.
-- **`common/`:** Shared utilities and primitives used across domains.
-- **Cross-Domain Workflows:** Handled via service-layer transactions (for example, creating a user and their initial tenant during registration).
+A modular starter template for building full-stack applications with FastAPI, SQLAlchemy (Async), PostgreSQL, Redis, and a Vite React frontend. It separates core infrastructure from business logic and uses explicit dependency injection for database sessions and caching.
 
 ---
 
-## Directory Structure
+## What's Included
+
+- **FastAPI Backend:** Configured with an application factory pattern, custom exception handling, structured logging, and lifespan event management.
+- **Domain-Driven Layout:** Business logic is organized into isolated domains (`domains/users/`) with dedicated models, schemas, routers, and services.
+- **Database & Cache Management:** SQLAlchemy 2.0 with async support, Alembic migrations, and separate read (`SessionDep`) and transaction (`TxSessionDep`) session dependencies.
+- **Frontend Integration:** Vite React setup with automated OpenAPI type generation from the backend spec.
+- **Developer Tooling:** Unified task runner via `Makefile` and local services managed through Docker Compose.
+
+---
+
+## Project Directory Layout
 
 ```text
-server/
-├── alembic/                    # Database migrations
-├── core/                       # Infrastructure plumbing (DB, security, lifespan)
-├── common/                     # Shared utilities (pagination, slugify)
-├── domains/                    # Bounded contexts
-│   ├── tenancy/                # Organizations and workspace management
-│   ├── billing/                # Subscriptions and usage meters
-│   └── users/                  # User accounts, authentication, and profiles
-│       ├── models.py           # SQLAlchemy User model
-│       ├── schemas.py          # Pydantic request/response models
-│       ├── services.py         # Business logic and registration workflow
-│       ├── router.py           # Auth endpoints
-│       └── security.py         # Password hashing and token utilities
-├── scripts/                    # Operational scripts (seeding, openapi export)
-├── tests/                      # Domain-mapped unit and integration tests
-├── .env                        # Local environment variables
-├── .env.example                # Environment variables template
-├── Dockerfile                  # Container definition
-├── config.py                   # Root-level Pydantic settings
-├── main.py                     # FastAPI application factory
-├── pyproject.toml              # Dependencies and project metadata
-└── uv.lock                     # Dependency lock file
-
+├── client/                 # Vite React frontend application
+├── server/                 # FastAPI backend application
+│   ├── alembic/            # Database migration scripts
+│   ├── common/             # Shared utilities (base models, string helpers)
+│   ├── core/               # Configuration, database, cache, security, and middleware
+│   ├── domains/            # Feature modules (e.g., users)
+│   ├── scripts/            # CLI utilities (seeders, openapi export)
+│   ├── tests/              # Pytest test suite
+│   └── main.py             # Application factory entrypoint
+├── infra/                  # Docker Compose configurations (PostgreSQL, Redis)
+└── Makefile                # Developer task runner
 ```
 
 ---
 
 ## Getting Started
 
-### Prerequisites
+### 1. Prerequisites
 
-- Python 3.12+
-- [uv](https://github.com/astral-sh/uv)
-- PostgreSQL
+- Python 3.12+ and `uv`
+- Node.js and `pnpm`
+- Docker and Docker Compose
 
-### Setup Steps
+### 2. Environment Configuration
 
-1. **Clone the repository:**
+Copy the sample environment files and update them with your local credentials:
 
 ```bash
-git clone https://github.com/zerexei/fastapi-saas-boilerplate.git
-cd fastapi-ddd-starter/server
-
+cp server/.env.example server/.env
+cp client/.env.example client/.env
 ```
 
-2. **Configure environment variables:**
+### 3. Start Infrastructure
+
+Run Docker Compose to spin up PostgreSQL and Redis:
 
 ```bash
-cp .env.example .env
-# Edit .env with your database credentials
-
+make up
 ```
 
-3. **Install dependencies:**
+### 4. Run Database Migrations
+
+Apply the initial database schema:
 
 ```bash
-uv sync
-
+make migrate
 ```
 
-4. **Run migrations:**
+### 5. Run Development Servers
+
+Start the backend and frontend servers in separate terminal tabs:
 
 ```bash
-uv run alembic upgrade head
+# Terminal 1: Backend
+make server-dev
 
+# Terminal 2: Frontend
+make client-dev
 ```
 
-5. **Run the server:**
+- Backend API Docs: `http://localhost:8000/docs`
+- Frontend App: `http://localhost:5173`
 
-```bash
-uv run uvicorn main:app --reload
+---
 
+## How to Add a New Domain
+
+To add a new feature domain (for example, `subscriptions`), create a new folder under `server/domains/` with the following structure:
+
+```text
+server/domains/subscriptions/
+├── models.py      # SQLAlchemy database models
+├── schemas.py     # Pydantic request/response validation
+├── service.py     # Business logic class receiving cache/dependencies
+├── dependencies.py# Domain-specific FastAPI dependencies
+└── router.py      # APIRouter endpoints
+```
+
+Then, register the router in `server/main.py` inside the `_register_routes` function:
+
+```python
+app.include_router(subscriptions_router, prefix="/api/v1", tags=["subscriptions"])
 ```
 
 ---
 
-## Tech Stack
+## Makefile Reference
 
-- **Framework:** [FastAPI](https://fastapi.tiangolo.com/)
-- **Database/ORM:** [SQLAlchemy](https://www.sqlalchemy.org/) (Async) + [Alembic](https://alembic.sqlalchemy.org/)
-- **Settings:** [Pydantic v2](https://docs.pydantic.dev/)
-- **Package Manager:** [uv](https://github.com/astral-sh/uv)
+- **`make up`** — Start local database and Redis containers.
+- **`make down`** — Stop infrastructure containers.
+- **`make logs`** — View container logs.
+- **`make migrate`** — Apply pending database migrations.
+- **`make migration-create msg="..."`** — Generate a new migration file.
+- **`make server-dev`** — Run the FastAPI backend development server.
+- **`make client-dev`** — Run the Vite React frontend development server.
+- **`make test-server`** — Run backend tests with pytest.
+- **`make test-client`** — Run frontend tests.
+- **`make types`** — Export OpenAPI spec and generate TypeScript definitions for the client.
 
 ---
 
 ## License
 
-MIT License. See `LICENSE` for details.
-
+Distributed under the MIT License.
