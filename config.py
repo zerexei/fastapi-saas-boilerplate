@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     APP_VERSION: str = "0.1.0"
     APP_ENV: Literal["local", "staging", "production"] = "local"
     APP_DEBUG: bool = True
-    APP_KEY: str = "super-secret-key-change-in-production"
+    APP_KEY: SecretStr
 
     APP_HOST: str = "localhost"
     APP_PORT: int = 8000
