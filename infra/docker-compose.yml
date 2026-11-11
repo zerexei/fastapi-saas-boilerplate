@@ -1,0 +1,130 @@
+networks:
+  app:
+
+volumes:
+  # pgsql-data:
+  redis-data:
+
+services:
+  client:
+    build:
+      context: ../client
+      dockerfile: Dockerfile
+    env_file:
+      - ../client/.env
+    ports:
+      - 3000:3000
+    volumes:
+      - ../client:/app
+      - /app/node_modules
+    networks:
+      - app
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512m
+        reservations:
+          memory: 256m
+
+  api:
+    build:
+      context: ../server
+      dockerfile: Dockerfile
+    env_file:
+      - ../server/.env
+    ports:
+      - 3001:3001
+    volumes:
+      - ../server:/app
+      - /app/.venv
+    networks:
+      - app
+    depends_on:
+      # - pgsql
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256m
+        reservations:
+          memory: 128m
+
+  # pgsql:
+  #   image: postgres:18-trixie
+  #   ports:
+  #     - ${DB_PORT:-5432}:5432
+  #   environment:
+  #     POSTGRES_DB: ${DB_DATABASE:-postgres}
+  #     POSTGRES_USER: ${DB_USERNAME:-postgres}
+  #     POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+  #   volumes:
+  #     - pgsql-data:/var/lib/postgresql
+  #   networks:
+  #     - app
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "pg_isready", "-U", "${DB_USERNAME:-postgres}"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.25"
+  #         memory: 256m
+  #       reservations:
+  #         memory: 128m
+
+  redis:
+    image: redis:8.6.0-alpine3.23
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    environment:
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+    volumes:
+      - redis-data:/data
+    networks:
+      - app
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256m
+        reservations:
+          memory: 128m
+
+  # nginx:
+  #   build:
+  #     context: ./nginx
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   depends_on:
+  #     - client
+  #     - api
+  #   networks:
+  #     - app
+  #   restart: unless-stopped
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "0.25"
+  #         memory: 128m
+  #       reservations:
+  #         memory: 64m
