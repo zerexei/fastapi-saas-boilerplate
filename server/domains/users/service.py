@@ -19,10 +19,12 @@ class UserService:
             result = await db.execute(select(User).where(User.email == email))
             return result.scalars().first()
 
-        return await self.cache.get_or_set_with_lock(
+        user = await self.cache.get_or_set_with_lock(
             f"users:email:{email}",
             _fetch_from_db,
         )
+        
+        return User(user) if user else None
 
     async def create(self, db: AsyncSession, user_in: UserCreate) -> User:
         db_user = User(
@@ -33,7 +35,7 @@ class UserService:
         db.add(db_user)
         await db.flush()
         await db.refresh(db_user)
-        return db_user
+        return User(db_user)
 
 
 def get_user_service(cache: CacheDep) -> UserService:
