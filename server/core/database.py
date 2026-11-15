@@ -39,11 +39,11 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             raise
 
 
-async def get_tx_db(
-    session: AsyncSession = Depends(get_db),
-) -> AsyncGenerator[AsyncSession, None]:
-    async with session.begin():
-        yield session
+async def get_tx_db() -> AsyncGenerator[AsyncSession, None]:
+    """Independent transactional session dependency."""
+    async with async_session_factory() as session:
+        async with session.begin():
+            yield session
 
 
 # Type Aliases
