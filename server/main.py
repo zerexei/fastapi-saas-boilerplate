@@ -29,7 +29,7 @@ def create_application() -> FastAPI:
 def _register_routes(app: FastAPI) -> None:
     app.include_router(users_router, prefix="/api/v1", tags=["users"])
 
-    @app.get("/health", tags=["Health"])
+    @app.get("/healthz", tags=["Health"])
     async def health_check():
         """Service health check endpoint."""
         return {"status": "healthy", "service": "operational"}

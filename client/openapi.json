@@ -75,14 +75,14 @@
         ]
       }
     },
-    "/health": {
+    "/healthz": {
       "get": {
         "tags": [
           "Health"
         ],
         "summary": "Health Check",
         "description": "Service health check endpoint.",
-        "operationId": "health_check_health_get",
+        "operationId": "health_check_healthz_get",
         "responses": {
           "200": {
             "description": "Successful Response",
