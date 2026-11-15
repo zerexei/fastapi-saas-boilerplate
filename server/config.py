@@ -48,8 +48,8 @@ class Settings(BaseSettings):
         return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
 
     # Security & JWT
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=1440, ge=1)
+    REFRESH_TOKEN_EXPIRE_DAYS: int = Field(default=7, ge=1)
     JWT_ALGORITHM: str = "HS256"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
