@@ -1,6 +1,7 @@
 import time
 import uuid
 
+import structlog
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
@@ -23,13 +24,20 @@ def register_middlewares(app: FastAPI) -> None:
         request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
         request.state.request_id = request_id
 
-        start_time = time.time()
-        response = await call_next(request)
-        process_time = time.time() - start_time
+        structlog.contextvars.bind_contextvars(request_id=request_id)
 
-        response.headers["X-Request-ID"] = request_id
-        response.headers["X-Process-Time"] = f"{process_time:.4f}"
-        return response
+        start_time = time.time()
+        try:
+            response = await call_next(request)
+            process_time = time.time() - start_time
+
+            response.headers["X-Request-ID"] = request_id
+            response.headers["X-Process-Time"] = f"{process_time:.4f}"
+            return response
+        finally:
+            # CRITICAL: Always unbind/clear request-specific context in a finally block
+            # so it never leaks into pooled async worker tasks.
+            structlog.contextvars.unbind_contextvars("request_id")
 
     # 2. Rate Limiter State & Exception Handling (SlowAPI)
     app.state.limiter = limiter
