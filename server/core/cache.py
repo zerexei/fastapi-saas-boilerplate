@@ -30,10 +30,7 @@ async def cache_lifespan(app: FastAPI):
         await redis.ping()
         logger.info("redis_connection_established")
     except Exception as e:
-        logger.error("redis_connection_failed", error=str(e))
-        raise RuntimeError(
-            f"Critical infrastructure failure: Could not connect to Redis. {e}"
-        ) from e
+        logger.warning("redis_unavailable_degraded_mode", error=str(e))
 
     yield
 
