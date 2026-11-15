@@ -35,7 +35,7 @@ async def cache_lifespan(app: FastAPI):
     yield
 
     """Gracefully close the Redis connection pool on shutdown."""
-    await redis.close()
+    await redis.aclose()
     logger.info("redis_connection_closed_gracefully")
 
 
