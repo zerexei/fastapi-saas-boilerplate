@@ -39,6 +39,9 @@ migration-create:
 migrate-rollback:
 	cd server && .venv/bin/alembic downgrade -1
 
+migrate-seed:
+	cd server && .venv/bin/python -m scripts.seed
+
 server-dev:
 	cd server && .venv/bin/fastapi dev
 

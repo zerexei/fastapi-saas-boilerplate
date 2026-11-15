@@ -1,23 +1,62 @@
-from core.database import async_session_factory
-from core.logger import get_logger
+import asyncio
+import sys
 
-logger = get_logger(__name__)
+import structlog
+from sqlalchemy import text
+
+from core.database import async_session_factory
+
+logger = structlog.get_logger(__name__)
 
 
 async def run_seed() -> None:
-    """Executes initial database seeding during application startup."""
+    """Standalone database seeding script guarded by a Postgres advisory lock."""
+    # 0x53454544 translates to ASCII 'SEED' in hex
+    advisory_lock_id = 1397048644
+
+    logger.info("database_seed_script_initiated")
+
     async with async_session_factory() as db:
         try:
-            logger.info("database_seeding_started")
+            # Try to acquire a non-blocking advisory lock
+            lock_acquired = await db.scalar(
+                text("SELECT pg_try_advisory_lock(:lock_id)"), 
+                {"lock_id": advisory_lock_id}
+            )
 
-            # TODO: Add your seed logic here (e.g., creating default roles or admin user)
-            # existing_role = await db.scalar(select(Role).where(Role.name == "admin"))
-            # if not existing_role:
-            #     db.add(Role(name="admin"))
+            if not lock_acquired:
+                logger.info("seeding_skipped_lock_held_by_another_process")
+                return
+
+            logger.info("seeding_lock_acquired_running_seeds")
+
+            # --- Your actual database seeding logic goes here ---
+            # Example:
+            # await db.execute(
+            #     text("INSERT INTO roles (name) VALUES ('admin'), ('user') ON CONFLICT DO NOTHING")
+            # )
+            # -------------------------------------------------------
 
             await db.commit()
-            logger.info("database_seeding_completed_successfully")
+            logger.info("database_seed_completed_successfully")
+
         except Exception as e:
             await db.rollback()
-            logger.error("database_seeding_failed", error=str(e))
-            raise
+            logger.error("database_seed_failed", error=str(e), exc_info=True)
+            sys.exit(1)
+            
+        finally:
+            # Release the advisory lock if it was acquired
+            try:
+                await db.execute(
+                    text("SELECT pg_advisory_unlock(:lock_id)"), 
+                    {"lock_id": advisory_lock_id}
+                )
+                await db.commit()
+            except Exception:
+                pass
+
+
+if __name__ == "__main__":
+    # Run the async seeding function via asyncio
+    asyncio.run(run_seed())
