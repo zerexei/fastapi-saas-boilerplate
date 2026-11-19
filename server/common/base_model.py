@@ -1,8 +1,7 @@
-# server/common/base_model.py
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, MetaData, Uuid, func, text
+from sqlalchemy import DateTime, ForeignKey, MetaData, Uuid, func, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 # Strict constraint naming convention for deterministic Alembic migrations
@@ -48,3 +47,11 @@ class TimestampMixin:
         server_default=func.now(),
         onupdate=func.now(),
     )
+
+    class TenantMixin:
+        workspace_id: Mapped[uuid.UUID] = mapped_column(
+            Uuid(as_uuid=True),
+            ForeignKey("workspaces.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        )
