@@ -13,10 +13,7 @@ from core.rate_limiter import limiter
 
 
 def register_middlewares(app: FastAPI) -> None:
-    """Register all global application middlewares, CORS, telemetry,
-
-    and rate limiting hooks.
-    """
+    """Register all global application middlewares, CORS, telemetry, and rate limiting hooks."""
 
     # 1. Custom Request ID & Execution Time Telemetry Middleware
     @app.middleware("http")
