@@ -9,7 +9,7 @@ from domains.users.enums import UserRole
 class UserBase(BaseModel):
     email: EmailStr
     is_active: bool = True
-    role: UserRole = UserRole.USER
+    role: UserRole = UserRole.user
 
 
 class UserCreate(UserBase):
