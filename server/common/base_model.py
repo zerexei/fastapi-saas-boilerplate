@@ -18,6 +18,7 @@ metadata = MetaData(naming_convention=convention)
 
 class Base(DeclarativeBase):
     """Base declarative class for all SQLAlchemy domain models."""
+
     metadata = metadata
 
 
@@ -26,6 +27,7 @@ class UUIDMixin:
 
     and application-side fallback for testing/SQLite.
     """
+
     id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True),
         primary_key=True,
@@ -36,16 +38,17 @@ class UUIDMixin:
 
 class TimestampMixin:
     """Timezone-aware timestamp mixin with database-level defaults and updates."""
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-    )
+
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
         onupdate=func.now(),
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
     )
 
     class TenantMixin:
