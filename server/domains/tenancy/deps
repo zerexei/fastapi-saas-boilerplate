@@ -1,0 +1,89 @@
+import hashlib
+import re
+from dataclasses import dataclass
+from enum import StrEnum
+from typing import Annotated
+
+from fastapi import Depends, Header, HTTPException, status
+
+from domains.tenancy.exceptions import TenantAccessDeniedError, TenantInactiveError
+
+TENANT_ID_PATTERN = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_-]{1,62}[a-zA-Z0-9]$")
+API_KEY_PATTERN = re.compile(r"^[A-Za-z0-9._-]{16,128}$")
+
+
+class TenantStatus(StrEnum):
+    active = "active"
+    suspended = "suspended"
+
+
+@dataclass(frozen=True, slots=True)
+class TenantContext:
+    tenant_id: str
+    caller_id: str
+    status: TenantStatus
+
+
+def _parse_token(
+    raw: str,
+    pattern: re.Pattern[str],
+    *,
+    missing_detail: str,
+    invalid_detail: str,
+    invalid_status: int = status.HTTP_400_BAD_REQUEST,
+) -> str:
+    normalized = raw.strip()
+    if not normalized:
+        raise HTTPException(status_code=invalid_status, detail=missing_detail)
+    if not pattern.fullmatch(normalized):
+        raise HTTPException(status_code=invalid_status, detail=invalid_detail)
+    return normalized
+
+
+def parse_tenant_id(raw: str) -> str:
+    return _parse_token(
+        raw,
+        TENANT_ID_PATTERN,
+        missing_detail="X-Tenant-ID header is required",
+        invalid_detail="Invalid X-Tenant-ID format",
+    )
+
+
+def parse_api_key(raw: str) -> str:
+    return _parse_token(
+        raw,
+        API_KEY_PATTERN,
+        missing_detail="X-API-Key header is required",
+        invalid_detail="Invalid X-API-Key format",
+        invalid_status=status.HTTP_401_UNAUTHORIZED,
+    )
+
+
+def _key_fingerprint(api_key: str) -> str:
+    return hashlib.sha256(api_key.encode("utf-8")).hexdigest()[:12]
+
+
+async def get_tenant_context(
+    x_tenant_id: Annotated[str, Header()],
+    x_api_key: Annotated[str, Header()],
+) -> TenantContext:
+    tenant_id = parse_tenant_id(x_tenant_id)
+    api_key = parse_api_key(x_api_key)
+
+    tenant_status = TenantStatus.active  # TODO: check via API Key
+    is_authorized = True  # TODO: check via API Key
+
+    if not is_authorized:
+        raise TenantAccessDeniedError()
+
+    if tenant_status != TenantStatus.active:
+        raise TenantInactiveError()
+
+    return TenantContext(
+        tenant_id=tenant_id,
+        caller_id=_key_fingerprint(api_key), # TODO: get user id from api_key in future
+        status=tenant_status,
+    )
+
+
+CurrentTenant = Annotated[TenantContext, Depends(get_tenant_context)]
