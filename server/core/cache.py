@@ -48,10 +48,8 @@ class Cache:
             # Serialize dictionaries, lists, or pydantic models into a string format for Redis
             if isinstance(value, (dict, list)):
                 serialized = json.dumps(value)
-            elif hasattr(value, "model_dump_json"):  # Pydantic v2
+            elif hasattr(value, "model_dump_json"):
                 serialized = value.model_dump_json()
-            elif hasattr(value, "dict"):  # Pydantic v1 fallback
-                serialized = json.dumps(value.dict())
             else:
                 serialized = str(value)
 
@@ -65,7 +63,6 @@ class Cache:
             if not data:
                 return None
 
-            # Since decode_responses=True, data is already a string
             try:
                 return json.loads(data)
             except (json.JSONDecodeError, TypeError):
