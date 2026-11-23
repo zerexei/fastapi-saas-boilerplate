@@ -3,13 +3,27 @@ from typing import Literal
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+APP_KEY_PATTERN = re.compile(r"^[A-Za-z0-9_-]{32,}$")
+
+
+def validate_app_key(secret: SecretStr) -> SecretStr:
+    raw = secret.get_secret_value()
+    if not APP_KEY_PATTERN.fullmatch(raw):
+        raise ValueError(
+            "APP_KEY must be at least 32 URL-safe characters ([A-Za-z0-9_-])."
+        )
+    return secret
+
+
+SecretAppKey = Annotated[SecretStr, AfterValidator(validate_app_key)]
+
 
 class Settings(BaseSettings):
     APP_NAME: str = "FastAPI SaaS Boilerplate"
     APP_VERSION: str = "0.1.0"
     APP_ENV: Literal["local", "staging", "production"] = "local"
     APP_DEBUG: bool = True
-    APP_KEY: SecretStr
+    APP_KEY: SecretAppKey
 
     APP_HOST: str = "localhost"
     APP_PORT: int = 8000
